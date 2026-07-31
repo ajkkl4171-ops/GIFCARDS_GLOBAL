@@ -546,6 +546,7 @@
     let balance = Number(localStorage.getItem("giftBalance") || 0);
     let cart = JSON.parse(localStorage.getItem("giftCart") || "[]");
     let user = JSON.parse(localStorage.getItem("giftUser") || "null");
+    let starterBalanceEmail = localStorage.getItem("giftStarterBalanceEmail") || "";
 
     const saveCart = () => localStorage.setItem("giftCart", JSON.stringify(cart));
     const saveBalance = () => localStorage.setItem("giftBalance", String(balance));
@@ -556,6 +557,21 @@
     };
 
     const getUserEmail = () => user?.email || "sin correo";
+
+    const applyStarterBalance = () => {
+      const oldStarterEmail = localStorage.getItem("giftBonusEmail") || "";
+      if (user?.email && oldStarterEmail === user.email && !starterBalanceEmail) {
+        starterBalanceEmail = user.email;
+        localStorage.setItem("giftStarterBalanceEmail", starterBalanceEmail);
+        return;
+      }
+      if (user?.email && starterBalanceEmail !== user.email) {
+        balance = 10;
+        starterBalanceEmail = user.email;
+        localStorage.setItem("giftStarterBalanceEmail", starterBalanceEmail);
+        saveBalance();
+      }
+    };
 
     const showApp = () => {
       if (user?.email) {
@@ -642,6 +658,10 @@
         setStatus("El carrito esta vacio.");
         return;
       }
+      if (cart.length < 2) {
+        setStatus("El minimo de compras son 2 productos. Recarga y vuelve a intentarlo otra vez.");
+        return;
+      }
       if (balance < total) {
         setStatus(`Saldo insuficiente. Total: ${total} USDT. Tu saldo: ${balance} USDT. Recarga minimo 10 USDT.`);
         return;
@@ -668,10 +688,16 @@
         authMsg.textContent = "Escribe un correo valido y una contrasena de minimo 4 caracteres.";
         return;
       }
+      const previousUser = user?.email;
       user = { email };
       localStorage.setItem("giftUser", JSON.stringify(user));
       authPassword.value = "";
+      if (previousUser !== email) {
+        cart = [];
+        saveCart();
+      }
       showApp();
+      applyStarterBalance();
       renderCart();
       setStatus(`Sesion iniciada con ${email}.`);
     });
@@ -695,8 +721,9 @@
       });
     });
 
-    renderCart();
     showApp();
+    applyStarterBalance();
+    renderCart();
   </script>
 </body>
 </html>
